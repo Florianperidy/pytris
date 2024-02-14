@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import pygame
+import sys
+from sys import argv
+from map import *
+from data import *
+
+def header():
+    print("USAGE")
+    print("     ./my_pytris [level of difficulty between 1 and 3]\n")
+    print("DESCRIPTION")
+    print("     Small game based on the Tetris game. 1 is the hardest difficulty and 3 the easiest.\n")
+    print("CONTROLS")
+    print("     Left-arrow key -> Move the block left")
+    print("     Right-arrow key -> Move the block right")
+    print("     Down-arrow key -> Move the block down")
+    print("     Up-arrow key /z key -> Rotate the block clockwise")
+    print("     Escape key -> Quit the game")
+
+
+def move_checker(event, game):
+    if event.key == pygame.K_LEFT and game.endgame == 0:
+        game.move_left()
+    if event.key == pygame.K_RIGHT and game.endgame == 0:
+        game.move_right()
+    if event.key == pygame.K_DOWN and game.endgame == 0:
+        game.move_down()
+        game.score(0, 1, 0)
+    if event.key == pygame.K_UP or event.key == pygame.K_z:
+        if game.endgame == 0:
+            game.rotate()
+
+def endgame(window, game_over, restart, game):
+    if game.endgame == 1:
+        window.blit(game_over, (650, 600, 50, 50))
+        window.blit(restart, (550, 700, 50, 50))
+        pygame.mixer.music.stop()
+
+def display_game(window, map, colors, game):
+    data = Data(game)
+    window.fill([0, 0, 100])
+    window.blit(data.score, (700, 20, 50, 50))
+    window.blit(data.next_block, (665, 250, 50, 50))
+    pygame.draw.rect(window, (153, 204, 255), data.score_window, 0, 10)
+    window.blit(data.score_value, data.score_value.get_rect(centerx = data.score_window.centerx, centery = data.score_window.centery))
+    pygame.draw.rect(window, (153, 204, 255), data.next_block_window, 0, 10)
+    map.display_map(window, colors)
+    game.display(window, colors)
+    endgame(window, data.game_over, data.restart, game)
+    pygame.display.update()
+
+def game_loop(map, colors, speed, window):
+    game = Gameloop(map)
+    auto_down = pygame.USEREVENT
+    clock = pygame.time.Clock()
+    pygame.time.set_timer(auto_down, speed)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and game.endgame == 1:
+                game.endgame = 0
+                game.reset()
+            if event.type == pygame.QUIT or event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                move_checker(event, game)
+            if event.type == auto_down and game.endgame == 0:
+                game.move_down()
+        display_game(window, map, colors, game)
+        clock.tick(60)
+
+def main():
+    if len(argv) == 2 and argv[1] == "-h" or len(argv) == 2 and argv[1] == "--help":
+        header()
+        exit(0)
+    if len(argv) < 2:
+        print("Not enough arguments. Try ./my_pytris -h or ./my_pytris --help")
+        return 84
+    if len(argv) > 2:
+        print("To much arguments. Try ./my_pytris -h or ./my_pytris --help")
+        return 84
+    if argv[1] != '1' and argv[1] != '2' and argv[1] != '3':
+        print("Wrong argument. Try ./my_pytris -h or ./my_pytris --help")
+        return 84
+    pygame.init()
+    window = pygame.display.set_mode((1000, 1001))
+    pygame.display.set_caption("My_pytris")
+    speed = int(argv[1]) * 250
+    grid = Map()
+    colors = get_colors()
+    game_loop(grid, colors, speed, window)
+
+main()
